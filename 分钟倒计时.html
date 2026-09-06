@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>分钟倒计时 - 动态颜色版</title>
+    <style>
+        body { margin: 0; background: #1a1a2e; font-family: 'Segoe UI', sans-serif; color: white; min-height: 100vh; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        
+        #mode-switcher { margin-bottom: 30px; }
+        .mode-btn { padding: 10px 25px; cursor: pointer; border: none; border-radius: 20px; background: #0f3460; color: #4facfe; margin: 0 10px; font-weight: bold; border: 1px solid #4facfe; transition: 0.3s; }
+        .mode-btn:hover { background: #4facfe; color: white; }
+
+        #main-wrapper { display: flex; gap: 40px; justify-content: center; align-items: flex-start; width: 100%; max-width: 1200px; }
+
+        .btn-style { 
+            background: linear-gradient(135deg, #4facfe, #00f2fe); 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4), inset -2px -2px 5px rgba(255,255,255,0.3);
+            border: none; border-radius: 50%; color: #1a1a2e; font-weight: 800;
+            cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center;
+        }
+        .btn-style:hover { transform: scale(1.25); z-index: 100; box-shadow: 0 0 20px #00f2fe; }
+
+        .square-row { display: flex; gap: 12px; margin-bottom: 12px; justify-content: center; }
+        .square-btn { width: 45px; height: 45px; font-size: 12px; }
+
+        #circle-container { position: relative; width: 640px; height: 640px; border-radius: 50%; background: #16213e; border: 4px solid #0f3460; margin-top: -50px; }
+        .circle-btn { position: absolute; width: 44px; height: 44px; font-size: 13px; }
+
+        #active-timers { width: 400px; display: flex; flex-direction: column; gap: 12px; }
+        .timer-card { background: #0f3460; padding: 15px 25px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #4facfe; }
+        .val { font-size: 24px; margin-left: 10px; font-weight: bold; transition: color 0.3s; }
+        .stop-btn { background: #e94560; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
+
+        /* 动画定义 */
+        @keyframes breathing {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(0.95); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes urgent-flash {
+            0% { color: #8b0000; opacity: 1; }
+            50% { color: #000000; opacity: 0.8; }
+            100% { color: #8b0000; opacity: 1; }
+        }
+        .breathing { animation: breathing 2s infinite ease-in-out; }
+        .urgent-flash { animation: urgent-flash 0.5s infinite; }
+    </style>
+</head>
+<body>
+
+    <div id="mode-switcher">
+        <button class="mode-btn" onclick="switchMode('square')">方形布局</button>
+        <button class="mode-btn" onclick="switchMode('circle')">圆形布局</button>
+    </div>
+
+    <div id="main-wrapper">
+        <div id="container"></div>
+        <div id="active-timers"></div>
+    </div>
+
+    <script>
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let activeTimersList = {};
+
+        window.addEventListener('keydown', () => {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            Object.values(activeTimersList).forEach(t => {
+                if (t.isAlarming) t.stop();
+            });
+        });
+
+        const worker = new Worker(URL.createObjectURL(new Blob([`
+            let timers = {};
+            self.onmessage = function(e) {
+                const { type, id, duration } = e.data;
+                if (type === 'start') {
+                    timers[id] = { remaining: duration, total: duration };
+                    let interval = setInterval(() => {
+                        timers[id].remaining--;
+                        self.postMessage({ type: 'tick', id, time: timers[id].remaining, total: timers[id].total });
+                        if (timers[id].remaining <= 0) { clearInterval(interval); self.postMessage({ type: 'alarm', id }); }
+                    }, 1000);
+                }
+            };
+        `], { type: 'application/javascript' })));
+
+        const container = document.getElementById('container');
+        const activeTimersContainer = document.getElementById('active-timers');
+
+        worker.onmessage = function(e) {
+            const { type, id, time, total } = e.data;
+            if (activeTimersList[id]) {
+                if (type === 'tick') activeTimersList[id].updateUI(time, total);
+                if (type === 'alarm') activeTimersList[id].triggerAlarm();
+            }
+        };
+
+        function switchMode(mode) {
+            container.innerHTML = '';
+            mode === 'square' ? renderSquare() : renderCircle();
+        }
+
+        function renderSquare() {
+            let nums = Array.from({length: 60}, (_, i) => i + 1);
+            for (let r = 0; r < 6; r++) {
+                const div = document.createElement('div'); div.className = 'square-row';
+                for (let c = 0; c < 10; c++) {
+                    const btn = document.createElement('button');
+                    btn.className = 'btn-style square-btn';
+                    btn.innerText = nums[r*10 + c];
+                    btn.onclick = () => new Timer(nums[r*10 + c]);
+                    div.appendChild(btn);
+                }
+                container.appendChild(div);
+            }
+        }
+
+        function renderCircle() {
+            const circle = document.createElement('div');
+            circle.id = 'circle-container';
+            const radius = 280; 
+            for (let i = 0; i < 60; i++) {
+                const btn = document.createElement('button');
+                btn.className = 'btn-style circle-btn';
+                btn.innerText = i + 1;
+                const angle = (i / 60) * 2 * Math.PI - Math.PI / 2;
+                btn.style.left = `calc(50% + ${radius * Math.cos(angle)}px - 22px)`;
+                btn.style.top = `calc(50% + ${radius * Math.sin(angle)}px - 22px)`;
+                btn.onclick = () => new Timer(i + 1);
+                circle.appendChild(btn);
+            }
+            container.appendChild(circle);
+        }
+
+        class Timer {
+            constructor(minutes) {
+                this.id = Date.now() + Math.random();
+                this.isAlarming = false; 
+                this.element = this.createUI(minutes);
+                this.element.classList.add('breathing');
+                activeTimersList[this.id] = this;
+                worker.postMessage({ type: 'start', id: this.id, duration: minutes * 60 });
+            }
+            createUI(m) {
+                const div = document.createElement('div');
+                div.className = 'timer-card';
+                div.innerHTML = `<span>${m}分:<span class="val">--:--</span></span><button class="stop-btn">停止</button>`;
+                div.querySelector('.stop-btn').onclick = () => this.stop();
+                activeTimersContainer.appendChild(div);
+                return div;
+            }
+            updateUI(remaining, total) {
+                let m = Math.floor(remaining/60), s = remaining%60;
+                const valEl = this.element.querySelector('.val');
+                valEl.innerText = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+
+                // 颜色逻辑
+                const pct = (remaining / total) * 100;
+                valEl.classList.remove('urgent-flash');
+                if (pct > 75) valEl.style.color = '#00f2fe';
+                else if (pct > 50) valEl.style.color = '#2ecc71'; // 绿色
+                else if (pct > 25) valEl.style.color = '#f1c40f'; // 黄色
+                else if (pct > 10) valEl.style.color = '#e74c3c'; // 浅红
+                else {
+                    valEl.style.color = '#8b0000'; // 深红
+                    valEl.classList.add('urgent-flash'); // 闪烁
+                }
+            }
+            triggerAlarm() {
+                this.isAlarming = true; 
+                this.element.classList.remove('breathing');
+                this.element.querySelector('.val').classList.remove('urgent-flash');
+                this.alarmInterval = setInterval(() => {
+                    const osc = audioCtx.createOscillator();
+                    osc.connect(audioCtx.destination);
+                    osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+                }, 600);
+            }
+            stop() {
+                this.element.classList.remove('breathing', 'urgent-flash');
+                clearInterval(this.alarmInterval);
+                if (this.element.parentNode) this.element.remove();
+                delete activeTimersList[this.id];
+            }
+        }
+        renderSquare();
+    </script>
+</body>
+</html>

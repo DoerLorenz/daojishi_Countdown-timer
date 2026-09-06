@@ -1,0 +1,12 @@
+{
+  "background_color": "#ffffff",
+  "description": "daojishi_Countdown-timer",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "daojishi_Countdown-timer",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "daojishi_Countdown-timer",
+  "start_url": "[https://doerlorenz.github.io/daojishi_Countdown-timer/分钟倒计时.html]",
+  "theme_color": "#ffffff"
+}
