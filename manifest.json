@@ -7,6 +7,6 @@
   "orientation": "any",
   "scope": "/",
   "short_name": "daojishi_Countdown-timer",
-  "start_url": "[https://doerlorenz.github.io/daojishi_Countdown-timer/分钟倒计时.html]",
+  "start_url": "[https://doerlorenz.github.io/daojishi_Countdown-timer/index.html]",
   "theme_color": "#ffffff"
 }
