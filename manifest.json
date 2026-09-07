@@ -2,12 +2,11 @@
   "background_color": "#ffffff",
   "dir": "ltr",
   "display": "standalone",
-  "name": "doerlorenz.github",
+  "name": "DJS",
   "orientation": "any",
   "scope": "/",
-  "short_name": "doerlorenz.github",
+  "short_name": "Djsts",
   "start_url": "https://doerlorenz.github.io/daojishi_Countdown-timer/",
   "theme_color": "#ffffff",
-  "description": "ssss",
-  "lang": "zh"
+  "description": "sss"
 }
