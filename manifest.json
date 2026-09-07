@@ -1,12 +1,13 @@
 {
   "background_color": "#ffffff",
-  "description": "daojishi_Countdown-timer",
   "dir": "ltr",
   "display": "standalone",
-  "name": "daojishi_Countdown-timer",
+  "name": "doerlorenz.github",
   "orientation": "any",
   "scope": "/",
-  "short_name": "daojishi_Countdown-timer",
-  "start_url": "[https://doerlorenz.github.io/daojishi_Countdown-timer/index.html]",
-  "theme_color": "#ffffff"
+  "short_name": "doerlorenz.github",
+  "start_url": "https://doerlorenz.github.io/daojishi_Countdown-timer/",
+  "theme_color": "#ffffff",
+  "description": "ssss",
+  "lang": "zh"
 }
