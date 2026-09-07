@@ -12,12 +12,12 @@
   "id": "djsTmr",
   "icons": [
   {
-    "src": "/android/launchericon-192x192.png",
+    "src": "/daojishi_Countdown-timer/android/launchericon-192x192.png",
     "type": "image/png",
     "sizes": "192x192"
   },
   {
-    "src": "/android/launchericon-512x512.png",
+    "src": "/daojishi_Countdown-timer/android/launchericon-512x512.png",
     "type": "image/png",
     "sizes": "512x512"
   }
