@@ -1,0 +1,13 @@
+{
+  "background_color": "#ffffff",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "doerlorenz.github",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "doerlorenz.github",
+  "start_url": "https://doerlorenz.github.io/daojishi_Countdown-timer/",
+  "theme_color": "#ffffff",
+  "description": "ssss",
+  "id": "djsTmr"
+}
