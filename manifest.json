@@ -4,7 +4,7 @@
   "display": "standalone",
   "name": "doerlorenz.github",
   "orientation": "any",
-  "scope": "/",
+  "scope": "https://doerlorenz.github.io/daojishi_Countdown-timer/",
   "short_name": "doerlorenz.github",
   "start_url": "https://doerlorenz.github.io/daojishi_Countdown-timer/",
   "theme_color": "#ffffff",
