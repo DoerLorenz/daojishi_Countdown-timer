@@ -31,7 +31,6 @@
         .val { font-size: 24px; margin-left: 10px; font-weight: bold; transition: color 0.3s; }
         .stop-btn { background: #e94560; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
 
-        /* 动画定义 */
         @keyframes breathing {
             0% { opacity: 1; transform: scale(1); }
             50% { opacity: 0.6; transform: scale(0.95); }
@@ -69,31 +68,16 @@
             });
         });
 
-        const worker = new Worker(URL.createObjectURL(new Blob([`
-            let timers = {};
-            self.onmessage = function(e) {
-                const { type, id, duration } = e.data;
-                if (type === 'start') {
-                    timers[id] = { remaining: duration, total: duration };
-                    let interval = setInterval(() => {
-                        timers[id].remaining--;
-                        self.postMessage({ type: 'tick', id, time: timers[id].remaining, total: timers[id].total });
-                        if (timers[id].remaining <= 0) { clearInterval(interval); self.postMessage({ type: 'alarm', id }); }
-                    }, 1000);
-                }
-            };
-        `], { type: 'application/javascript' })));
+        // 监听页面重新可见时的触发事件，瞬间触发一次校准
+        document.addEventListener("visibilitychange", () => {
+            if (!document.hidden) {
+                const now = Date.now();
+                Object.values(activeTimersList).forEach(t => t.checkTime(now));
+            }
+        });
 
         const container = document.getElementById('container');
         const activeTimersContainer = document.getElementById('active-timers');
-
-        worker.onmessage = function(e) {
-            const { type, id, time, total } = e.data;
-            if (activeTimersList[id]) {
-                if (type === 'tick') activeTimersList[id].updateUI(time, total);
-                if (type === 'alarm') activeTimersList[id].triggerAlarm();
-            }
-        };
 
         function switchMode(mode) {
             container.innerHTML = '';
@@ -135,12 +119,17 @@
         class Timer {
             constructor(minutes) {
                 this.id = Date.now() + Math.random();
-                this.isAlarming = false; 
+                this.isAlarming = false;
+                this.totalDuration = minutes * 60 * 1000; // 毫秒
+                this.endTime = Date.now() + this.totalDuration; // 目标结束时间戳
                 this.element = this.createUI(minutes);
                 this.element.classList.add('breathing');
                 activeTimersList[this.id] = this;
-                worker.postMessage({ type: 'start', id: this.id, duration: minutes * 60 });
+
+                // 使用绝对时间戳循环，防后台节流延迟
+                this.timerInterval = setInterval(() => this.checkTime(Date.now()), 200);
             }
+
             createUI(m) {
                 const div = document.createElement('div');
                 div.className = 'timer-card';
@@ -149,25 +138,40 @@
                 activeTimersContainer.appendChild(div);
                 return div;
             }
+
+            checkTime(now) {
+                if (this.isAlarming) return;
+                const remainingMs = this.endTime - now;
+                const remainingSec = Math.ceil(remainingMs / 1000);
+
+                if (remainingSec <= 0) {
+                    this.updateUI(0, this.totalDuration / 1000);
+                    this.triggerAlarm();
+                } else {
+                    this.updateUI(remainingSec, this.totalDuration / 1000);
+                }
+            }
+
             updateUI(remaining, total) {
                 let m = Math.floor(remaining/60), s = remaining%60;
                 const valEl = this.element.querySelector('.val');
                 valEl.innerText = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
 
-                // 颜色逻辑
                 const pct = (remaining / total) * 100;
                 valEl.classList.remove('urgent-flash');
                 if (pct > 75) valEl.style.color = '#00f2fe';
-                else if (pct > 50) valEl.style.color = '#2ecc71'; // 绿色
-                else if (pct > 25) valEl.style.color = '#f1c40f'; // 黄色
-                else if (pct > 10) valEl.style.color = '#e74c3c'; // 浅红
+                else if (pct > 50) valEl.style.color = '#2ecc71';
+                else if (pct > 25) valEl.style.color = '#f1c40f';
+                else if (pct > 10) valEl.style.color = '#e74c3c';
                 else {
-                    valEl.style.color = '#8b0000'; // 深红
-                    valEl.classList.add('urgent-flash'); // 闪烁
+                    valEl.style.color = '#8b0000';
+                    valEl.classList.add('urgent-flash');
                 }
             }
+
             triggerAlarm() {
                 this.isAlarming = true; 
+                clearInterval(this.timerInterval);
                 this.element.classList.remove('breathing');
                 this.element.querySelector('.val').classList.remove('urgent-flash');
                 this.alarmInterval = setInterval(() => {
@@ -177,8 +181,10 @@
                     osc.start(); osc.stop(audioCtx.currentTime + 0.3);
                 }, 600);
             }
+
             stop() {
                 this.element.classList.remove('breathing', 'urgent-flash');
+                clearInterval(this.timerInterval);
                 clearInterval(this.alarmInterval);
                 if (this.element.parentNode) this.element.remove();
                 delete activeTimersList[this.id];
